@@ -18,20 +18,12 @@ from torchmeta.datasets import helpers as torchmeta_datasets_helpers
 from torchmeta.utils.data import BatchMetaDataLoader
 
 from model import EZML, SimpleEncoder
+from helpers import set_seeds, dict2cuda
 
 torch.backends.cudnn.deterministic = True
 
 # --
 # Helpers
-
-def dict2cuda(x, device='cuda:0'):
-    for k, v in x.items():
-        if isinstance(v, torch.Tensor):
-            x[k] = v.to(device)
-        elif isinstance(v, list):
-            x[k] = [vv.to(device) for vv in v]
-    
-    return x
 
 def do_eval(model, dataloader, max_batches):
     assert not model.training
@@ -51,7 +43,7 @@ def do_eval(model, dataloader, max_batches):
             total   += int(pred_tar.shape[0])
             correct += int((pred_tar == yy_tar).sum())
     
-    return correct / total
+    return correct / total if total > 0 else -1
 
 # --
 # CLI
@@ -59,8 +51,8 @@ def do_eval(model, dataloader, max_batches):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset',    type=str, default='omniglot')
-    parser.add_argument('--ways',       type=int, default=20)
-    parser.add_argument('--shots',      type=int, default=1)
+    parser.add_argument('--ways',       type=int, required=True)
+    parser.add_argument('--shots',      type=int, required=True)
     
     parser.add_argument('--inner-steps', type=int, default=1)
     
@@ -72,9 +64,12 @@ def parse_args():
     parser.add_argument('--valid-shots',    type=int, default=1)
     parser.add_argument('--max-iters',      type=int, default=2 ** 14)
     
+    parser.add_argument('--seed', type=int, default=123)
+    
     return parser.parse_args()
 
 args = parse_args()
+set_seeds(args.seed)
 
 print(json.dumps(vars(args)))
 
@@ -110,6 +105,10 @@ dataloader_kwargs = {
 train_dataloader = BatchMetaDataLoader(train_dataset, **dataloader_kwargs)
 valid_dataloader = BatchMetaDataLoader(valid_dataset, **dataloader_kwargs)
 test_dataloader  = BatchMetaDataLoader(test_dataset, **dataloader_kwargs)
+
+for batch in test_dataloader:
+    print(batch['train'][0].shape)
+
 
 # --
 # Define model

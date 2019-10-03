@@ -21,26 +21,12 @@ from torchmeta.datasets import helpers as torchmeta_datasets_helpers
 from torchmeta.utils.data import BatchMetaDataLoader
 
 from model import EZML, SimpleEncoder
+from helpers import set_seeds, dict2cuda
 
 torch.backends.cudnn.deterministic = True
 
 # --
 # Helpers
-
-def set_seeds(seed):
-    _ = torch.manual_seed(seed)
-    _ = torch.cuda.manual_seed(seed + 1)
-    _ = np.random.seed(seed + 2)
-
-
-def dict2cuda(x, device='cuda:0'):
-    for k, v in x.items():
-        if isinstance(v, torch.Tensor):
-            x[k] = v.to(device)
-        elif isinstance(v, list):
-            x[k] = [vv.to(device) for vv in v]
-    
-    return x
 
 def do_eval(model, dataloader, max_batches):
     assert not model.training
