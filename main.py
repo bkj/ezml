@@ -51,8 +51,8 @@ def do_eval(model, dataloader, max_batches):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset',    type=str, default='omniglot')
-    parser.add_argument('--ways',       type=int, required=True)
-    parser.add_argument('--shots',      type=int, required=True)
+    parser.add_argument('--ways',       type=int, default=20)
+    parser.add_argument('--shots',      type=int, default=1)
     
     parser.add_argument('--inner-steps', type=int, default=1)
     
@@ -95,6 +95,9 @@ dataset_kwargs    = {
 train_dataset  = dataset_cls(meta_split='train', **dataset_kwargs)
 valid_dataset  = dataset_cls(meta_split='val',  test_shots=args.valid_shots, **dataset_kwargs)
 test_dataset   = dataset_cls(meta_split='test', test_shots=args.valid_shots, **dataset_kwargs)
+
+assert len(valid_dataset.dataset.labels) >= args.ways, "--ways is too high for `valid_dataset`"
+assert len(test_dataset.dataset.labels) >= args.ways, "--ways is too high for `test_dataset`"
 
 dataloader_kwargs = {
     "batch_size"  : args.batch_size, 
