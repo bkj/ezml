@@ -32,7 +32,12 @@ class SimpleEncoder(nn.Module):
         self.out_channels = hidden_dims[-1]
     
     def forward(self, x):
-        return self.layers(x)[:,:,0,0]
+        out = self.layers(x)
+        
+        # pool
+        out = out.mean(dim=(2, 3), keepdim=True).squeeze(-1).squeeze(-1)
+        
+        return out
 
 
 class FastHead(nn.Module):
