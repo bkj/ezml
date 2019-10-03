@@ -14,7 +14,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from torchmeta.datasets.helpers import omniglot
+from torchmeta.datasets import helpers as torchmeta_datasets_helpers
 from torchmeta.utils.data import BatchMetaDataLoader
 
 from model import EZML, SimpleEncoder
@@ -56,32 +56,55 @@ def do_eval(model, dataloader, max_batches):
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--dataset',    type=str, default='omniglot')
     parser.add_argument('--ways',       type=int, default=20)
     parser.add_argument('--shots',      type=int, default=1)
     
     parser.add_argument('--inner-steps', type=int, default=1)
     
-    parser.add_argument('--batch-size', type=int, default=8)
+    parser.add_argument('--batch-size', type=int,   default=8)
     parser.add_argument('--lr',         type=float, default=1e-3)
     
-    parser.add_argument('--valid-interval', type=int, default=100)
+    parser.add_argument('--valid-interval', type=int, default=512)
     parser.add_argument('--valid-batches',  type=int, default=100)
-    parser.add_argument('--max-iters',      type=int, default=200)
+    parser.add_argument('--valid-shots',    type=int, default=1)
+    parser.add_argument('--max-iters',      type=int, default=2 ** 14)
     
     return parser.parse_args()
 
 args = parse_args()
 
+print(json.dumps(vars(args)))
+
 # --
 # IO
 
-dataset_kwargs    = {"ways" : args.ways, "shots"  : args.shots, "shuffle" : True}
-dataloader_kwargs = {"batch_size" : args.batch_size, "num_workers" : 4, "shuffle" : True, "pin_memory" : True}
+dataset_in_channels = {
+    "omniglot"     : 1,
+    "miniimagenet" : 3,
+}
+in_channels = dataset_in_channels[args.dataset]
 
-train_dataset  = omniglot("./data", meta_split='train', **dataset_kwargs)
-valid_dataset  = omniglot("./data", meta_split='val', test_shots=5, **dataset_kwargs)
-test_dataset   = omniglot("./data", meta_split='test', test_shots=5, **dataset_kwargs)
+dataset_cls = getattr(torchmeta_datasets_helpers, args.dataset)
 
+dataset_kwargs    = {
+    "folder"   : "./data", 
+    "ways"     : args.ways, 
+    "shots"    : args.shots, 
+    "shuffle"  : True, 
+    "download" : True,
+}
+
+train_dataset  = dataset_cls(meta_split='train', **dataset_kwargs)
+valid_dataset  = dataset_cls(meta_split='val',  test_shots=args.valid_shots, **dataset_kwargs)
+test_dataset   = dataset_cls(meta_split='test', test_shots=args.valid_shots, **dataset_kwargs)
+
+dataloader_kwargs = {
+    "batch_size"  : args.batch_size, 
+    "num_workers" : 4, 
+    "shuffle"     : True, 
+    "pin_memory"  : True,
+}
 train_dataloader = BatchMetaDataLoader(train_dataset, **dataloader_kwargs)
 valid_dataloader = BatchMetaDataLoader(valid_dataset, **dataloader_kwargs)
 test_dataloader  = BatchMetaDataLoader(test_dataset, **dataloader_kwargs)
@@ -90,7 +113,7 @@ test_dataloader  = BatchMetaDataLoader(test_dataset, **dataloader_kwargs)
 # Define model
 
 model = EZML(
-    encoder=SimpleEncoder(),
+    encoder=SimpleEncoder(in_channels=in_channels),
     n_classes=args.ways,
     inner_steps=args.inner_steps
 ).to('cuda:0')
