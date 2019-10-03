@@ -8,7 +8,7 @@ conda activate ezml_env
 conda install -y -c pytorch pytorch==1.2.0 torchvision
 
 pip install torchmeta==1.1.1
-
+pip install tqdm
 # conda install -y numpy 
 # conda install -y scipy
 # conda install -y matplotlib

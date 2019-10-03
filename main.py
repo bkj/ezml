@@ -7,6 +7,7 @@
 import sys
 import json
 import argparse
+from tqdm import tqdm
 from time import time
 
 import torch
@@ -34,7 +35,7 @@ def do_eval(model, dataloader, max_batches):
     assert not model.training
     
     total, correct = 0, 0
-    for batch_idx, batch in enumerate(dataloader):
+    for batch_idx, batch in enumerate(tqdm(dataloader)):
         if batch_idx == max_batches:
             break
         
@@ -43,7 +44,7 @@ def do_eval(model, dataloader, max_batches):
         x_tar, y_tar = batch['test']
         
         for xx_sup, yy_sup, xx_tar, yy_tar in zip(x_sup, y_sup, x_tar, y_tar):
-            pred_tar = model(xx_sup, yy_sup, xx_tar)
+            pred_tar = model(xx_sup, yy_sup, xx_tar).argmax(dim=-1)
             
             total   += int(pred_tar.shape[0])
             correct += int((pred_tar.argmax(dim=-1) == yy_tar).sum())
@@ -73,21 +74,23 @@ args = parse_args()
 # --
 # IO
 
-dataset_kwargs = {"ways" : args.ways, "shots"  : args.shots}
-train_dataset  = omniglot("./data", meta_split='train', **dataset_kwargs)
-valid_dataset  = omniglot("./data", meta_split='val', **dataset_kwargs)
-test_dataset   = omniglot("./data", meta_split='test', **dataset_kwargs)
+dataset_kwargs    = {"ways" : args.ways, "shots"  : args.shots, "shuffle" : True}
+dataloader_kwargs = {"batch_size" : args.batch_size, "num_workers" : 4, "shuffle" : True, "pin_memory" : True}
 
-train_dataloader = BatchMetaDataLoader(train_dataset, batch_size=args.batch_size, num_workers=4)
-valid_dataloader = BatchMetaDataLoader(valid_dataset, batch_size=args.batch_size, num_workers=4)
-test_dataloader  = BatchMetaDataLoader(test_dataset, batch_size=args.batch_size, num_workers=4)
+train_dataset  = omniglot("./data", meta_split='train', **dataset_kwargs)
+valid_dataset  = omniglot("./data", meta_split='val', test_shots=5, **dataset_kwargs)
+test_dataset   = omniglot("./data", meta_split='test', test_shots=5, **dataset_kwargs)
+
+train_dataloader = BatchMetaDataLoader(train_dataset, **dataloader_kwargs)
+valid_dataloader = BatchMetaDataLoader(valid_dataset, **dataloader_kwargs)
+# test_dataloader  = BatchMetaDataLoader(test_dataset, **dataloader_kwargs)
 
 # --
 # Define model
 
 model = EZML(
-    encoder=SimpleEncoder(), 
-    n_classes=args.ways, 
+    encoder=SimpleEncoder(),
+    n_classes=args.ways,
     inner_steps=args.inner_steps
 ).to('cuda:0')
 
@@ -100,7 +103,10 @@ train_hist = []
 t_start    = time()
 valid_acc  = 0
 test_acc   = 0
+
 for batch_idx, batch in enumerate(train_dataloader):
+    if batch_idx == 100:
+        break
     
     # --
     # Train
@@ -113,13 +119,18 @@ for batch_idx, batch in enumerate(train_dataloader):
     
     batch_total, batch_correct = 0, 0
     for xx_sup, yy_sup, xx_tar, yy_tar in zip(x_sup, y_sup, x_tar, y_tar):
-        pred_tar = model(xx_sup, yy_sup, xx_tar)
+        # Shuffle within batch, to be conservative
+        p              = torch.randperm(xx_tar.shape[0])
+        xx_tar, yy_tar = xx_tar[p], yy_tar[p]
         
-        loss = F.cross_entropy(pred_tar, yy_tar)
+        logit_tar = model(xx_sup, yy_sup, xx_tar)
+        pred_tar  = logit_tar.argmax(dim=-1)
+        
+        loss = F.cross_entropy(logit_tar, yy_tar)
         loss.backward()
         
-        batch_total   += int(pred_tar.shape[0])
-        batch_correct += int((pred_tar.argmax(dim=-1) == yy_tar).sum())
+        batch_total   += int(logit_tar.shape[0])
+        batch_correct += int((pred_tar == yy_tar).sum())
     
     opt.step()
     
