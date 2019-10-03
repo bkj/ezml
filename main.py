@@ -66,6 +66,7 @@ def parse_args():
     
     parser.add_argument('--valid-interval', type=int, default=100)
     parser.add_argument('--valid-batches',  type=int, default=100)
+    parser.add_argument('--max-iters',      type=int, default=200)
     
     return parser.parse_args()
 
@@ -83,7 +84,7 @@ test_dataset   = omniglot("./data", meta_split='test', test_shots=5, **dataset_k
 
 train_dataloader = BatchMetaDataLoader(train_dataset, **dataloader_kwargs)
 valid_dataloader = BatchMetaDataLoader(valid_dataset, **dataloader_kwargs)
-# test_dataloader  = BatchMetaDataLoader(test_dataset, **dataloader_kwargs)
+test_dataloader  = BatchMetaDataLoader(test_dataset, **dataloader_kwargs)
 
 # --
 # Define model
@@ -105,9 +106,6 @@ valid_acc  = 0
 test_acc   = 0
 
 for batch_idx, batch in enumerate(train_dataloader):
-    if batch_idx == 100:
-        break
-    
     # --
     # Train
     
@@ -119,9 +117,6 @@ for batch_idx, batch in enumerate(train_dataloader):
     
     batch_total, batch_correct = 0, 0
     for xx_sup, yy_sup, xx_tar, yy_tar in zip(x_sup, y_sup, x_tar, y_tar):
-        # Shuffle within batch, to be conservative
-        p              = torch.randperm(xx_tar.shape[0])
-        xx_tar, yy_tar = xx_tar[p], yy_tar[p]
         
         logit_tar = model(xx_sup, yy_sup, xx_tar)
         pred_tar  = logit_tar.argmax(dim=-1)
@@ -153,3 +148,6 @@ for batch_idx, batch in enumerate(train_dataloader):
         valid_acc = do_eval(model, valid_dataloader, max_batches=args.valid_batches)
         test_acc  = do_eval(model, test_dataloader, max_batches=args.valid_batches)
         _ = model.train()
+    
+    if batch_idx == args.max_iters:
+        break
