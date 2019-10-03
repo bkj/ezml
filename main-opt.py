@@ -22,7 +22,7 @@ from torchmeta.utils.data import BatchMetaDataLoader
 
 from model import EZML, SimpleEncoder
 
-torch.cudnn.deterministic = True
+torch.backends.cudnn.deterministic = True
 
 # --
 # Helpers
@@ -61,9 +61,9 @@ def do_eval(model, dataloader, max_batches):
         y_tar     = y_tar.view(-1)
         
         total   += int(pred_tar.shape[0])
-        correct += int((pred_tar.argmax(dim=-1) == y_tar).sum())
+        correct += int((pred_tar == y_tar).sum())
     
-    return total / correct
+    return correct / total
 
 # --
 # CLI

@@ -7,7 +7,6 @@
 import sys
 import json
 import argparse
-import numpy as np
 from tqdm import tqdm
 from time import time
 
@@ -19,6 +18,8 @@ from torchmeta.datasets import helpers as torchmeta_datasets_helpers
 from torchmeta.utils.data import BatchMetaDataLoader
 
 from model import EZML, SimpleEncoder
+
+torch.backends.cudnn.deterministic = True
 
 # --
 # Helpers
@@ -48,7 +49,7 @@ def do_eval(model, dataloader, max_batches):
             pred_tar = model(xx_sup, yy_sup, xx_tar).argmax(dim=-1)
             
             total   += int(pred_tar.shape[0])
-            correct += int((pred_tar.argmax(dim=-1) == yy_tar).sum())
+            correct += int((pred_tar == yy_tar).sum())
     
     return correct / total
 
@@ -71,15 +72,11 @@ def parse_args():
     parser.add_argument('--valid-shots',    type=int, default=1)
     parser.add_argument('--max-iters',      type=int, default=2 ** 14)
     
-    parser.add_argument('--seed', type=int, default=123)
-    
     return parser.parse_args()
 
 args = parse_args()
-set_seeds(args.seed)
 
 print(json.dumps(vars(args)))
-
 
 # --
 # IO
