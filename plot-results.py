@@ -21,11 +21,13 @@ if __name__ == "__main__":
     args = parse_args()
     
     x = open(args.inpath).read().splitlines()
-    if 'batch_acc' not in x[0]:
-        config, x = json.loads(x[0]), x[1:]
-        print(config)
+    config, x = json.loads(x[0]), x[1:]
     
-    df = pd.DataFrame([json.loads(xx) for xx in x])
+    columns = ('batch_idx', 'elapsed', 'batch_acc', 'valid_acc', 'test_acc')
+    df = pd.DataFrame([json.loads(xx) for xx in x], columns=columns)
+
+    df['ways']  = config['ways']
+    df['shots'] = config['shots']
     
     _ = plt.plot(df.batch_acc, label='batch_acc', c='black', alpha=0.5)
     _ = plt.plot(df.valid_acc, label='valid_acc', c='red', alpha=0.5)
@@ -35,3 +37,5 @@ if __name__ == "__main__":
     _ = plt.xlabel('batch')
     _ = plt.ylabel('accuracy')
     show_plot()
+    
+    print(df.tail())
