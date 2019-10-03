@@ -106,6 +106,7 @@ valid_acc  = 0
 test_acc   = 0
 
 for batch_idx, batch in enumerate(train_dataloader):
+    
     # --
     # Train
     
