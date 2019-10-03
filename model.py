@@ -32,12 +32,18 @@ class SimpleEncoder(nn.Module):
         self.out_channels = hidden_dims[-1]
     
     def forward(self, x):
-        out = self.layers(x)
+        batch_of_tasks = len(x.shape) == 5
+        if batch_of_tasks:
+            b, s, c, w, h = x.shape
+            x = x.view(b * s, c, w, h)
         
-        # pool
-        out = out.mean(dim=(2, 3), keepdim=True).squeeze(-1).squeeze(-1)
+        x = self.layers(x)
+        x = x.mean(dim=(2, 3), keepdim=True).squeeze(-1).squeeze(-1)
         
-        return out
+        if batch_of_tasks:
+            x = x.view(b, s, -1)
+        
+        return x
 
 
 class FastHead(nn.Module):
@@ -53,10 +59,20 @@ class FastHead(nn.Module):
         self.weights = nn.Parameter(torch.ones(in_channels, 1))
     
     def forward(self, x, y):
-        w = (self.scale * self.weights).repeat((1, self.out_channels))
+        batch_of_tasks = len(x.shape) == 3
+        if batch_of_tasks:
+            b, s, c = x.shape
+        
+        w = (self.scale * self.weights)
+        
+        if batch_of_tasks:
+            w = w.unsqueeze(0).repeat((b, 1, self.out_channels))
+        else:
+            w = w.repeat((1, self.out_channels))
+        
         for _ in range(self.n_steps):
             out  = x @ w
-            loss = F.cross_entropy(out, y)
+            loss = F.cross_entropy(out.view(-1, self.out_channels), y.view(-1), reduction='sum')
             grad = torch.autograd.grad(loss, [w], create_graph=True)[0]
             w    = w - self.lr * grad
         

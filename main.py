@@ -49,7 +49,7 @@ def do_eval(model, dataloader, max_batches):
             total   += int(pred_tar.shape[0])
             correct += int((pred_tar.argmax(dim=-1) == yy_tar).sum())
     
-    return batch_correct / batch_total
+    return correct / total
 
 # --
 # CLI
