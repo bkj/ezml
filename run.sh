@@ -16,4 +16,5 @@ CUDA_VISIBLE_DEVICES=1 python main.py \
 # --
 # Run more optimized, but less obvious implementation
 
-CUDA_VISIBLE_DEVICES=3 python main-opt.py --ways 5 --shots 1 | tee results/og-opt-results.jl
+CUDA_VISIBLE_DEVICES=3 python main-opt.py \
+    --dataset omniglot --ways 20 --shots 1 | tee results/og-opt-results.jl

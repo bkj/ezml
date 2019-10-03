@@ -106,10 +106,6 @@ train_dataloader = BatchMetaDataLoader(train_dataset, **dataloader_kwargs)
 valid_dataloader = BatchMetaDataLoader(valid_dataset, **dataloader_kwargs)
 test_dataloader  = BatchMetaDataLoader(test_dataset, **dataloader_kwargs)
 
-for batch in test_dataloader:
-    print(batch['train'][0].shape)
-
-
 # --
 # Define model
 
