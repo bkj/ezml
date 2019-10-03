@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
 """
-    main.py
+    main-opt.py
+    
+    
 """
 
 import sys
@@ -20,8 +22,16 @@ from torchmeta.utils.data import BatchMetaDataLoader
 
 from model import EZML, SimpleEncoder
 
+torch.cudnn.deterministic = True
+
 # --
 # Helpers
+
+def set_seeds(seed):
+    _ = torch.manual_seed(seed)
+    _ = torch.cuda.manual_seed(seed + 1)
+    _ = np.random.seed(seed + 2)
+
 
 def dict2cuda(x, device='cuda:0'):
     for k, v in x.items():
@@ -39,18 +49,21 @@ def do_eval(model, dataloader, max_batches):
     for batch_idx, batch in enumerate(tqdm(dataloader)):
         if batch_idx == max_batches:
             break
-        
+            
         batch        = dict2cuda(batch)
         x_sup, y_sup = batch['train']
         x_tar, y_tar = batch['test']
         
-        for xx_sup, yy_sup, xx_tar, yy_tar in zip(x_sup, y_sup, x_tar, y_tar):
-            pred_tar = model(xx_sup, yy_sup, xx_tar).argmax(dim=-1)
-            
-            total   += int(pred_tar.shape[0])
-            correct += int((pred_tar.argmax(dim=-1) == yy_tar).sum())
+        logit_tar = model(x_sup, y_sup, x_tar)
+        logit_tar = logit_tar.view(-1, args.ways)
+        pred_tar  = logit_tar.argmax(dim=-1)
+        
+        y_tar     = y_tar.view(-1)
+        
+        total   += int(pred_tar.shape[0])
+        correct += int((pred_tar.argmax(dim=-1) == y_tar).sum())
     
-    return correct / total
+    return total / correct
 
 # --
 # CLI
@@ -79,7 +92,6 @@ args = parse_args()
 set_seeds(args.seed)
 
 print(json.dumps(vars(args)))
-
 
 # --
 # IO
@@ -144,17 +156,17 @@ for batch_idx, batch in enumerate(train_dataloader):
     x_sup, y_sup = batch['train']
     x_tar, y_tar = batch['test']
     
-    batch_total, batch_correct = 0, 0
-    for xx_sup, yy_sup, xx_tar, yy_tar in zip(x_sup, y_sup, x_tar, y_tar):
-        
-        logit_tar = model(xx_sup, yy_sup, xx_tar)
-        pred_tar  = logit_tar.argmax(dim=-1)
-        
-        loss = F.cross_entropy(logit_tar, yy_tar)
-        loss.backward()
-        
-        batch_total   += int(logit_tar.shape[0])
-        batch_correct += int((pred_tar == yy_tar).sum())
+    logit_tar = model(x_sup, y_sup, x_tar)
+    logit_tar = logit_tar.view(-1, args.ways)
+    pred_tar  = logit_tar.argmax(dim=-1)
+    
+    y_tar     = y_tar.view(-1)
+    
+    loss = F.cross_entropy(logit_tar, y_tar)
+    loss.backward()
+    
+    batch_total   = int(logit_tar.shape[0])
+    batch_correct = int((pred_tar == y_tar).sum())
     
     opt.step()
     
