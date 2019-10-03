@@ -2,6 +2,8 @@
 
 # run.sh
 
+conda activate ezml_env
+
 # --
 # Run basic implementation
 
