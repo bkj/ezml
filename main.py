@@ -62,7 +62,7 @@ def parse_args():
     parser.add_argument('--valid-interval', type=int, default=512)
     parser.add_argument('--valid-batches',  type=int, default=100)
     parser.add_argument('--valid-shots',    type=int, default=1)
-    parser.add_argument('--max-iters',      type=int, default=2 ** 14)
+    parser.add_argument('--max-iters',      type=int, default=50000)
     
     parser.add_argument('--seed', type=int, default=123)
     
@@ -119,6 +119,7 @@ model = EZML(
 ).to('cuda:0')
 
 opt = torch.optim.Adam(model.parameters(), lr=args.lr)
+lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, mode='max', factor=0.5, patience=3)
 
 # --
 # Run
@@ -171,6 +172,7 @@ for batch_idx, batch in enumerate(train_dataloader):
         _ = model.eval()
         valid_acc = do_eval(model, valid_dataloader, max_batches=args.valid_batches)
         test_acc  = do_eval(model, test_dataloader, max_batches=args.valid_batches)
+        lr_scheduler.step(valid_acc)
         _ = model.train()
     
     if batch_idx == args.max_iters:
