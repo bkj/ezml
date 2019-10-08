@@ -14,7 +14,7 @@ See `./install.sh`
 
 ## Usage
 
-See `./main.sh`
+See `./run.sh`
 
 ## Notes
 

@@ -53,8 +53,8 @@ class FastHead(nn.Module):
         self.in_channels  = in_channels
         self.out_channels = out_channels
         self.n_steps      = n_steps
-        self.lr           = lr
         
+        self.lr      = nn.Parameter(torch.FloatTensor([lr]))
         self.scale   = nn.Parameter(torch.FloatTensor([1]))
         self.weights = nn.Parameter(torch.ones(in_channels, 1))
     
