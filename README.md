@@ -16,6 +16,18 @@ See `./install.sh`
 
 See `./run.sh`
 
+## Performance
+
+Omniglot 20-way 1-shot:
+```
+{"batch_idx": 50000, "batch_acc": 0.975, "valid_acc": 0.959125, "test_acc": 0.953, "elapsed": 4062.5901415348053}
+```
+
+Mini-ImageNet 5-way 1-shot:
+```
+{"batch_idx": 50000, "batch_acc": 0.75, "valid_acc": 0.4785, "test_acc": 0.48175, "elapsed": 3896.5144040584564}
+```
+
 ## Notes
 
 - The weights in the classifier head are tied, and no bias is learned -- this makes the network invariant to permutations in the order of classes in a task.
