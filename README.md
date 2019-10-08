@@ -19,3 +19,7 @@ See `./main.sh`
 ## Notes
 
 - The weights in the classifier head are tied, and no bias is learned -- this makes the network invariant to permutations in the order of classes in a task.
+
+## Optimizations
+
+- The dataloader slows down training by ~ 25% -- this could very likely be optimized

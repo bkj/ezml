@@ -104,7 +104,7 @@ test_dataset   = dataset_cls(meta_split='test', test_shots=args.valid_shots, **d
 
 dataloader_kwargs = {
     "batch_size"  : args.batch_size, 
-    "num_workers" : 4, 
+    "num_workers" : 8, 
     "shuffle"     : True, 
     "pin_memory"  : True,
 }
