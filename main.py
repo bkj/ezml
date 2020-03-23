@@ -17,7 +17,7 @@ from torch.nn import functional as F
 from torchmeta.datasets import helpers as torchmeta_datasets_helpers
 from torchmeta.utils.data import BatchMetaDataLoader
 
-from model import EZML, SimpleEncoder
+from model import EZML, SimpleEncoder, ResNet12
 from helpers import set_seeds, dict2cuda
 
 torch.backends.cudnn.deterministic = True
@@ -112,8 +112,13 @@ test_dataloader  = BatchMetaDataLoader(test_dataset, **dataloader_kwargs)
 # --
 # Define model
 
+encoder = ResNet12(in_channels=in_channels, dropout=0.5)
+
+print(encoder, file=sys.stderr)
+
 model = EZML(
-    encoder=SimpleEncoder(in_channels=in_channels),
+    # encoder=SimpleEncoder(in_channels=in_channels),
+    encoder=encoder,
     n_classes=args.ways,
     inner_steps=args.inner_steps
 ).to('cuda:0')

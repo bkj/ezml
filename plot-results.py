@@ -29,10 +29,11 @@ if __name__ == "__main__":
     df['ways']  = config['ways']
     df['shots'] = config['shots']
     
-    _ = plt.plot(df.batch_acc, label='batch_acc', c='black', alpha=0.5)
+    _ = plt.plot(df.batch_acc, label='batch_acc', c='black', alpha=0.25)
     _ = plt.plot(df.valid_acc, label='valid_acc', c='red', alpha=0.5)
     _ = plt.plot(df.test_acc,  label='test_acc', c='blue', alpha=0.5)
     _ = plt.legend()
+    _ = plt.grid('both')
     _ = plt.title(args.inpath)
     _ = plt.xlabel('batch')
     _ = plt.ylabel('accuracy')
